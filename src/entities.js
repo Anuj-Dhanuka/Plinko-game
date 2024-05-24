@@ -2,7 +2,6 @@ import { Dimensions, Animated } from 'react-native';
 import Matter from "matter-js";
 
 // Components
-import Particle from "./components/Particle";
 import Plinko from "./components/Plinko";
 import Bucket from "./components/Bucket";
 import Floor from "./components/Floor";
@@ -17,14 +16,6 @@ export default function useEntities() {
 
   engine.world.gravity.y = 0.3;
 
-  const ballRadius = 5;
-  const ball = Matter.Bodies.circle(screenWidth / 2, 50, ballRadius, {
-    restitution: 0.5,
-    friction: 0.5,
-    density: 1,
-  });
-
-  Matter.World.add(world, [ball]);
 
   const plinkoRadius = 3;
   const plinkos = [];
@@ -122,7 +113,6 @@ export default function useEntities() {
 
   return {
     physics: { engine, world },
-    ball_0: { body: ball, size: [ballRadius * 2, ballRadius * 2], color: 'white', renderer: Particle },
     floor: { body: floor, size: [screenWidth, 20], color: 'grey', renderer: Floor },
     leftWall: { body: leftWall, size: [20, screenHeight], color: 'transparent', renderer: LeftWall },
     rightWall: { body: rightWall, size: [20, screenHeight], color: 'transparent', renderer: RightWall },
