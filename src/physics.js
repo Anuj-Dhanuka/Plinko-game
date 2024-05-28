@@ -1,84 +1,113 @@
 import Matter from "matter-js";
-import { Dimensions, Animated } from "react-native";
+import { Animated, Dimensions } from "react-native";
 
 // Components
 import Particle from "./components/Particle";
 
 // Store
-import { updateScore } from "./store/actions/ScoreAction";
+import { stopCreatingBall } from "./store/actions/BallAction";
 
-const { width: screenWidth } = Dimensions.get("window");
+// Common utils
+import { BALL_RADIUS, NUMBER_OF_BUCKETS } from "./utils/commonUtils";
 
-let lastBallTime = Date.now();
-const Physics = (entities, { time }, dispatch) => {
-  let engine = entities.physics.engine;
-  Matter.Engine.update(engine, time.delta);
+const { width: screenWidth } = Dimensions.get('window');
 
-  const currentTime = Date.now();
+let eventListenerAdded = false; // Ensure the listener is added only once
 
-  const targetBucketIndex = undefined; 
+const Physics = (
+  entities,
+  { time },
+  dispatch,
+  createNewBall,
+  handleScore,
+  targetBucketIndex = 7
+) => {
+  const engine = entities.physics.engine;
 
-  const initialX = screenWidth / 2; 
-  const initialY = 50;
+  let allowEngineUpdate = !createNewBall;
 
-  const numBuckets = 17;
+  if (allowEngineUpdate) {
+    Matter.Engine.update(engine, time.delta);
+  }
+
   let targetBucketX;
-  let velocityX, velocityY;
 
   if (targetBucketIndex !== undefined) {
-    targetBucketX = (screenWidth / numBuckets) * (targetBucketIndex + 0.5);
-    velocityX = (targetBucketX - initialX) / 20; 
-    velocityY = 6;
-  } else {
-    targetBucketX = initialX;
-    velocityX = 0;
-    velocityY = 2; 
+    targetBucketX = (screenWidth / NUMBER_OF_BUCKETS) * (targetBucketIndex + 0.5);
   }
 
-  if (currentTime - lastBallTime >= 2000 || Object.keys(entities).filter(key => key.startsWith("ball_")).length === 0) {
-    const ballRadius = 5;
-    const ball = Matter.Bodies.circle(initialX, initialY, ballRadius, {
-      restitution: 0.5,
-      friction: 0.5,
-      density: 1,
+  if (createNewBall) {
+    const ballRadius = BALL_RADIUS;
+
+    const firstRowPlinkos = Object.values(entities).filter(
+      (entity) => entity.isPlinko && entity.body.position.y === 100
+    );
+    if (firstRowPlinkos.length >= 2) {
+      const firstPlinko = firstRowPlinkos[0];
+      const lastPlinko = firstRowPlinkos[firstRowPlinkos.length - 1];
+      const initialPositions = [
+        firstPlinko.body.position.x - (firstPlinko.body.circleRadius - 6),
+        lastPlinko.body.position.x + (lastPlinko.body.circleRadius - 6),
+      ];
+
+      const initialX =
+        initialPositions[Math.floor(Math.random() * initialPositions.length)];
+      const initialY = 50;
+
+      const ball = Matter.Bodies.circle(initialX, initialY, ballRadius, {
+        restitution: 0.5,
+        friction: 1,
+        density: 0.001,
+        label: "ball",
+      });
+
+      Matter.World.add(engine.world, ball);
+      entities[`ball_${Date.now()}`] = {
+        body: ball,
+        size: [ballRadius * 2, ballRadius * 2],
+        color: "white",
+        renderer: Particle,
+      };
+
+      dispatch(stopCreatingBall());
+    }
+  }
+
+  if (!eventListenerAdded) {
+    Matter.Events.on(engine, "collisionStart", (event) => {
+      event.pairs.forEach(({ bodyA, bodyB }) => {
+        if (bodyA.label === "ball" || bodyB.label === "ball") {
+          const ballBody = bodyA.label === "ball" ? bodyA : bodyB;
+          const plinkoBody = bodyA.label === "ball" ? bodyB : bodyA;
+
+          if (plinkoBody.label === "plinko") {
+            const forceMagnitudeX = 0.02; // Increased force for more impact
+            const forceMagnitudeY = 0.01;
+
+            const dx = targetBucketX - ballBody.position.x;
+            const directionX = dx > 0 ? 1 : -1;
+
+            Matter.Body.applyForce(ballBody, ballBody.position, {
+              x: directionX * forceMagnitudeX,
+              y: -forceMagnitudeY // Apply upward force to slow descent
+            });
+
+            // Logging for debugging
+            console.log(`Applying force: ${directionX * forceMagnitudeX}, ${-forceMagnitudeY} to ball at position: ${ballBody.position.x}, ${ballBody.position.y}`);
+
+            const plinkoEntityKey = Object.keys(entities).find(
+              (key) => entities[key].body === plinkoBody
+            );
+
+            if (plinkoEntityKey) {
+              entities[plinkoEntityKey].isHighlighted = true;
+            }
+          }
+        }
+      });
     });
 
-    Matter.Body.setVelocity(ball, { x: velocityX, y: velocityY });
-
-    Matter.World.add(engine.world, ball);
-    entities[`ball_${currentTime}`] = {
-      body: ball,
-      size: [ballRadius * 2, ballRadius * 2],
-      color: "white",
-      renderer: Particle,
-      targetBucketX: targetBucketX, 
-      updateCount: 0, 
-    };
-    lastBallTime = currentTime;
-  }
-
-  for (const key in entities) {
-    if (key.startsWith("ball_")) {
-      const ball = entities[key];
-      ball.updateCount = (ball.updateCount || 0) + 1;
-
-      if (targetBucketIndex !== undefined) {
-        if (ball.updateCount % 3 === 0) { 
-          const ballBody = ball.body;
-          const currentX = ballBody.position.x;
-          const targetX = ball.targetBucketX;
-          const deltaX = targetX - currentX;
-
-          const newVelocityX = deltaX / 16;
-          Matter.Body.setVelocity(ballBody, { x: newVelocityX, y: ballBody.velocity.y });
-
-          Matter.Body.applyForce(ballBody, ballBody.position, {
-            x: newVelocityX * 0.0001,
-            y: 0,
-          });
-        }
-      }
-    }
+    eventListenerAdded = true; // Ensure the listener is added only once
   }
 
   for (const key in entities) {
@@ -92,7 +121,7 @@ const Physics = (entities, { time }, dispatch) => {
       for (const entityKey in entities) {
         if (entityKey.startsWith("ball_")) {
           const ball = entities[entityKey];
-          if (!ball) continue; 
+          if (!ball) continue;
           const ballBody = ball.body;
           const ballPosition = ballBody.position;
           const ballRadius = ball.size[0] / 2;
@@ -100,13 +129,14 @@ const Physics = (entities, { time }, dispatch) => {
           const dx = ballPosition.x - bucketPosition.x;
           const dy = ballPosition.y - bucketPosition.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          const minDistance = ballRadius + Math.min(bucketWidth, bucketHeight) / 2 + 6;
+          const minDistance =
+            ballRadius + Math.min(bucketWidth, bucketHeight) / 2 + 6;
 
           if (distance < minDistance && ballBody.velocity.y > 0) {
             Matter.World.remove(engine.world, ballBody);
             delete entities[entityKey];
 
-            dispatch(updateScore(bucket.points));
+            handleScore(bucket.points);
 
             Animated.sequence([
               Animated.timing(bucket.animatedValue, {

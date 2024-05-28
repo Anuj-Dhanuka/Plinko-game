@@ -1,6 +1,9 @@
 import { Dimensions, Animated } from 'react-native';
 import Matter from "matter-js";
 
+//common utils
+import { PLINKO_RADIUS, NUMBER_OF_ROWS,  SPACING_Y, PLINKO_COLOR, NUMBER_OF_BUCKETS, BUCKET_HEIGHT, BUCKET_WIDTH } from './utils/commonUtils';
+
 // Components
 import Plinko from "./components/Plinko";
 import Bucket from "./components/Bucket";
@@ -14,18 +17,16 @@ export default function useEntities() {
   let engine = Matter.Engine.create({ enableSleeping: false });
   let world = engine.world;
 
-  engine.world.gravity.y = 0.3;
+  engine.world.gravity.y = 0.15;
 
-
-  const plinkoRadius = 3;
+  const plinkoRadius = PLINKO_RADIUS;
   const plinkos = [];
-  const rows = 16;
-  const spacingX = 18;
-  const spacingY = 30;
+  const rows = NUMBER_OF_ROWS;
+  const spacingX = (screenWidth - (3 * plinkoRadius * rows)) / (rows + 1) + 8;
+  const spacingY = SPACING_Y;
 
   let lastPlinkoPlace = 0;
   let firstPlinkoOflastRow = 0;
-  let secondPlinkoOfLastRow = 0;
   for (let row = 0; row < rows; row++) {
     const plinkosInRow = 3 + row;
     for (let col = 0; col < plinkosInRow; col++) {
@@ -43,15 +44,18 @@ export default function useEntities() {
       const plinko = Matter.Bodies.circle(x, y, plinkoRadius, {
         isStatic: true,
         restitution: 0.5,
-        friction: 0.5,
+        friction: 0.2,
+        label: 'plinko'
       });
 
       Matter.World.add(world, plinko);
       plinkos.push({
         body: plinko,
         size: [plinkoRadius * 2, plinkoRadius * 2],
-        color: 'green',
+        color: PLINKO_COLOR,
         renderer: Plinko,
+        isPlinko: true,
+        isHighlighted: false,
       });
     }
   }
@@ -63,28 +67,28 @@ export default function useEntities() {
   Matter.World.add(world, [floor, leftWall, rightWall]);
 
   const buckets = [];
-  const numBuckets = 17;
-  const bucketWidth = 17; 
-  const bucketHeight = 17;
+  const numBuckets = NUMBER_OF_BUCKETS;
+  const bucketWidth = BUCKET_WIDTH; 
+  const bucketHeight = BUCKET_HEIGHT;
 
   const bucketDetails = [
-    { points: 110, color: '#ff0000' },
-    { points: 41, color: '#ff6600' },
-    { points: 10, color: '#ffcc00' },
-    { points: 5, color: '#ff9900' },
-    { points: 3, color: '#ff6600' },
-    { points: 1.5, color: '#ff3300' },
-    { points: 1, color: '#ff0000' },
+    { points: 110, color: '#FF0000' },
+    { points: 41, color: '#FF0000' },
+    { points: 10, color: '#ff6666' },
+    { points: 5, color: '#FFA07A' },
+    { points: 3, color: '#FF9900' },
+    { points: 1.5, color: '#FFC107' },
+    { points: 1, color: '#FFC400' },
     { points: 0.5, color: '#ffcc00' },
-    { points: 0.3, color: '#ff9900' },
+    { points: 0.3, color: '#ffd11a' },
     { points: 0.5, color: '#ffcc00' },
-    { points: 1, color: '#ff0000' },
-    { points: 1.5, color: '#ff3300' },
-    { points: 3, color: '#ff6600' },
-    { points: 5, color: '#ff9900' },
-    { points: 10, color: '#ffcc00' },
-    { points: 41, color: '#ff6600' },
-    { points: 110, color: '#ff0000' }
+    { points: 1, color: '#FFC400' },
+    { points: 1.5, color: '#FFC107' },
+    { points: 3, color: '#FF9900' },
+    { points: 5, color: '#FFA07A' },
+    { points: 10, color: '#ff6666' },
+    { points: 41, color: '#FF0000' },
+    { points: 110, color: '#FF0000' }
   ];
 
   const lastPlinkoX = plinkos[plinkos.length - rows].body.position.x + (rows - 1) * spacingX;

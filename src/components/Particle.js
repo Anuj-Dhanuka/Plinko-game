@@ -8,7 +8,6 @@ function Particle(props) {
   const x = props.body.position.x - width / 2;
   const y = props.body.position.y - height / 2;
 
-  // Validate positions
   const validX = isNaN(x) ? 0 : x;
   const validY = isNaN(y) ? 0 : y;
 

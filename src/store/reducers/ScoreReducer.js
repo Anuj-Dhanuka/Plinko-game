@@ -1,5 +1,5 @@
 //types
-import { UPDATE_SCORE } from "../actions/type";
+import { UPDATE_SCORE } from "../actions/types";
 
 const initialState = {
   score: 100,

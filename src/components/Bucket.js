@@ -1,7 +1,5 @@
-// src/components/Bucket.js
-
 import React from "react";
-import { View, Animated, Text, StyleSheet } from "react-native";
+import {Animated, Text, StyleSheet } from "react-native";
 
 const Bucket = (props) => {
   const { body, size, color, borderRadius, animatedValue, points } = props;

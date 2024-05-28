@@ -1,5 +1,5 @@
 //types
-import { UPDATE_SCORE } from "./type";
+import { UPDATE_SCORE } from "./types";
 
 export const updateScore = (newScore) => ({
     type: UPDATE_SCORE,
