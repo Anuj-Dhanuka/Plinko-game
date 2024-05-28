@@ -8,9 +8,14 @@ import Particle from "./components/Particle";
 import { stopCreatingBall } from "./store/actions/BallAction";
 
 // Common utils
-import { BALL_RADIUS, NUMBER_OF_BUCKETS } from "./utils/commonUtils";
+import {
+  BALL_RADIUS,
+  NUMBER_OF_BUCKETS,
+  NUMBER_OF_ROWS,
+  PLINKO_RADIUS,
+} from "./utils/commonUtils";
 
-const { width: screenWidth } = Dimensions.get("window");
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 let eventListenerAdded = false;
 
@@ -30,13 +35,10 @@ const Physics = (
     Matter.Engine.update(engine, time.delta);
   }
 
-  let targetBucketX;
-
-  if (targetBucketIndex !== undefined) {
-    targetBucketX =
-      (screenWidth / NUMBER_OF_BUCKETS) * (targetBucketIndex + 0.5);
-  }
-
+  const spacingX =
+    (screenWidth - 3 * PLINKO_RADIUS * NUMBER_OF_ROWS) / (NUMBER_OF_ROWS + 1) +
+    8;
+  const targetBucketX = spacingX * (targetBucketIndex + 0.5);
 
   if (createNewBall) {
     const ballRadius = BALL_RADIUS;
@@ -82,36 +84,7 @@ const Physics = (
           const ballBody = bodyA.label === "ball" ? bodyA : bodyB;
           const plinkoBody = bodyA.label === "ball" ? bodyB : bodyA;
 
-          if (plinkoBody.label === "plinko") {
-            const forceMagnitudeX = 0.0005 * targetBucketX;
-            const forceMagnitudeY = 0.01;
-
-            const dx = targetBucketX - ballBody.position.x;
-            const directionX = dx > 0 ? 1 : -1;
-
-            Matter.Body.applyForce(ballBody, ballBody.position, {
-              x: directionX * forceMagnitudeX,
-              y: forceMagnitudeY,
-            });
-
-            const plinkoEntityKey = Object.keys(entities).find(
-              (key) => entities[key].body === plinkoBody
-            );
-
-            if (plinkoEntityKey) {
-              const plinko = entities[plinkoEntityKey];
-              const plinkoBody = plinko.body;
-
-              // Modify plinko weight when ball touches plinko
-              const newDensity = plinkoBody.density * 100;
-              Matter.Body.setDensity(plinkoBody, newDensity);
-
-            }
-            
-            if (plinkoEntityKey) {
-              entities[plinkoEntityKey].isHighlighted = true;
-            }
-          }
+          
         }
       });
     });

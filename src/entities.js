@@ -43,8 +43,10 @@ export default function useEntities() {
 
       const plinko = Matter.Bodies.circle(x, y, plinkoRadius, {
         isStatic: true,
-        restitution: 0.5,
-        friction: 0.2,
+        restitution: 0.6,
+        friction: 0.1,
+        density: 0.1,
+        mass: 0.2,
         label: 'plinko'
       });
 
