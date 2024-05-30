@@ -17,7 +17,7 @@ export default function useEntities() {
   let engine = Matter.Engine.create({ enableSleeping: false });
   let world = engine.world;
 
-  engine.world.gravity.y = 0.15;
+  engine.world.gravity.y = 0.1;
 
   const plinkoRadius = PLINKO_RADIUS;
   const plinkos = [];
@@ -44,7 +44,7 @@ export default function useEntities() {
       const plinko = Matter.Bodies.circle(x, y, plinkoRadius, {
         isStatic: true,
         restitution: 0.6,
-        friction: 0.1,
+        friction: 0.5,
         density: 0.1,
         mass: 0.2,
         label: 'plinko'

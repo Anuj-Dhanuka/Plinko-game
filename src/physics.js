@@ -8,7 +8,12 @@ import Particle from "./components/Particle";
 import { stopCreatingBall } from "./store/actions/BallAction";
 
 // Common utils
-import { BALL_RADIUS, NUMBER_OF_BUCKETS } from "./utils/commonUtils";
+import {
+  BALL_RADIUS,
+  NUMBER_OF_BUCKETS,
+  NUMBER_OF_ROWS,
+  SPACING_Y,
+} from "./utils/commonUtils";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -20,7 +25,7 @@ const Physics = (
   dispatch,
   createNewBall,
   handleScore,
-  targetBucketIndex = 7
+  targetBucketIndex = undefined
 ) => {
   const engine = entities.physics.engine;
 
@@ -37,6 +42,7 @@ const Physics = (
       (screenWidth / NUMBER_OF_BUCKETS) * (targetBucketIndex + 0.5);
   }
 
+  const centerRowOfPlinkos = Math.floor(NUMBER_OF_ROWS / 2) * SPACING_Y + 100;
 
   if (createNewBall) {
     const ballRadius = BALL_RADIUS;
@@ -57,8 +63,9 @@ const Physics = (
       const initialY = 50;
 
       const ball = Matter.Bodies.circle(initialX, initialY, ballRadius, {
-        restitution: 0.5,
-        friction: 0.2,
+        restitution: 0.3,
+        friction: 0.8,
+        frictionAir: 0.05,
         density: 0.1,
         label: "ball",
       });
@@ -82,9 +89,13 @@ const Physics = (
           const ballBody = bodyA.label === "ball" ? bodyA : bodyB;
           const plinkoBody = bodyA.label === "ball" ? bodyB : bodyA;
 
-          if (plinkoBody.label === "plinko") {
-            const forceMagnitudeX = 0.0005 * targetBucketX;
-            const forceMagnitudeY = 0.01;
+          if (
+            plinkoBody.label === "plinko" &&
+            Math.abs(plinkoBody.position.y - centerRowOfPlinkos) < SPACING_Y / 2
+          ) {
+            console.log("touched");
+            const forceMagnitudeX = 0.0002 * targetBucketX;
+            const forceMagnitudeY = 0.005;
 
             const dx = targetBucketX - ballBody.position.x;
             const directionX = dx > 0 ? 1 : -1;
@@ -100,14 +111,26 @@ const Physics = (
 
             if (plinkoEntityKey) {
               const plinko = entities[plinkoEntityKey];
+              const oldDensity = plinko.body.density;
+              const baseDensity = 0.1; // Moderate base density
+              const densityDifference = 0.05;
+
+              console.log(plinko.body.position.x);
+
+              const newDensity =
+                baseDensity +
+                (ballBody.position.x < plinko.body.position.x
+                  ? densityDifference
+                  : -densityDifference);
+
               const plinkoBody = plinko.body;
 
-              // Modify plinko weight when ball touches plinko
-              const newDensity = plinkoBody.density * 100;
               Matter.Body.setDensity(plinkoBody, newDensity);
-
+              console.log(
+                `Old density of plinko: ${oldDensity}, New density of plinko: ${newDensity}`
+              );
             }
-            
+
             if (plinkoEntityKey) {
               entities[plinkoEntityKey].isHighlighted = true;
             }
